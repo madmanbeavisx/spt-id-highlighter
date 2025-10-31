@@ -1,0 +1,65 @@
+<idea-plugin>
+    <id>com.madmanbeavis.spt-id-highlighter</id>
+    <name>SPT ID Highlighter</name>
+    <vendor email="madmanbeavis@gmail.com" url="https://github.com/madmanbeavisx">MadManBeavis</vendor>
+
+    <description><![CDATA[
+    This plugin aids in the development of the <a href="https://github.com/sp-tarkov">Single Player Tarkov</a> project by providing additional information about items, quests, and other game objects directly within JetBrains Rider.
+    <br><br>
+    <b>Features:</b>
+    <ul>
+        <li>Hover over SPT IDs to see detailed information</li>
+        <li>Visual highlighting of SPT IDs in code</li>
+        <li>Multilingual support (17 languages)</li>
+        <li>Custom ID support via .sptids file</li>
+    </ul>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
+    <depends>JavaScript</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Settings -->
+        <applicationConfigurable
+            parentId="tools"
+            instance="com.madmanbeavis.sptidHighlighter.settings.SptIdSettingsConfigurable"
+            id="com.madmanbeavis.sptidHighlighter.settings.SptIdSettingsConfigurable"
+            displayName="SPT ID Highlighter"/>
+
+        <applicationService
+            serviceImplementation="com.madmanbeavis.sptidHighlighter.settings.SptIdSettingsState"/>
+
+        <!-- Data Service -->
+        <applicationService
+            serviceImplementation="com.madmanbeavis.sptidHighlighter.services.SptDataService"/>
+
+        <!-- Documentation Provider -->
+        <lang.documentationProvider
+            language="JSON"
+            implementationClass="com.madmanbeavis.sptidHighlighter.documentation.SptIdDocumentationProvider"/>
+
+        <lang.documentationProvider
+            language="TypeScript"
+            implementationClass="com.madmanbeavis.sptidHighlighter.documentation.SptIdDocumentationProvider"/>
+
+        <!-- Annotator -->
+        <annotator
+            language="JSON"
+            implementationClass="com.madmanbeavis.sptidHighlighter.annotator.SptIdAnnotator"/>
+
+        <annotator
+            language="TypeScript"
+            implementationClass="com.madmanbeavis.sptidHighlighter.annotator.SptIdAnnotator"/>
+
+        <!-- File Watcher -->
+        <projectService
+            serviceImplementation="com.madmanbeavis.sptidHighlighter.services.SptIdsFileWatcher"/>
+    </extensions>
+
+    <projectListeners>
+        <listener
+            class="com.madmanbeavis.sptidHighlighter.listeners.SptProjectListener"
+            topic="com.intellij.openapi.project.ProjectManagerListener"/>
+    </projectListeners>
+</idea-plugin>
