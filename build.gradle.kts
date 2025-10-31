@@ -13,6 +13,9 @@ repositories {
 
 dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
+    testImplementation("org.jetbrains.kotlin:kotlin-test")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
+    testImplementation("io.mockk:mockk:1.13.8")
 }
 
 intellij {
@@ -33,6 +36,10 @@ tasks {
     }
     withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         kotlinOptions.jvmTarget = "17"
+    }
+
+    test {
+        useJUnitPlatform()
     }
 
     patchPluginXml {

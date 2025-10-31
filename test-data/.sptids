@@ -1,0 +1,19 @@
+{
+  "47e96efdafba4be44836eb6d": {
+    "en": {
+      "Name": "Test Handguard",
+      "ShortName": "TH",
+      "Type": "ITEM",
+      "Weight": 0.5
+    }
+  },
+  "custom_test_id_123": {
+    "en": {
+      "Name": "Custom Test Item",
+      "ShortName": "CTI",
+      "Type": "WEAPON",
+      "Weight": 1.5,
+      "Damage": 50
+    }
+  }
+}

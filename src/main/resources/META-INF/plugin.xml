@@ -30,9 +30,19 @@
         <applicationService
             serviceImplementation="com.madmanbeavis.sptidHighlighter.settings.SptIdSettingsState"/>
 
-        <!-- Data Service -->
+        <!-- Services -->
         <applicationService
             serviceImplementation="com.madmanbeavis.sptidHighlighter.services.SptDataService"/>
+
+        <projectService
+            serviceImplementation="com.madmanbeavis.sptidHighlighter.services.SptIdsFileWatcher"/>
+
+        <!-- Project Startup Activity -->
+        <postStartupActivity
+            implementation="com.madmanbeavis.sptidHighlighter.listeners.SptProjectListener"/>
+
+        <!-- Notification Group -->
+        <notificationGroup id="SPT ID Highlighter" displayType="BALLOON"/>
 
         <!-- Documentation Provider -->
         <lang.documentationProvider
@@ -51,15 +61,15 @@
         <annotator
             language="TypeScript"
             implementationClass="com.madmanbeavis.sptidHighlighter.annotator.SptIdAnnotator"/>
-
-        <!-- File Watcher -->
-        <projectService
-            serviceImplementation="com.madmanbeavis.sptidHighlighter.services.SptIdsFileWatcher"/>
     </extensions>
 
-    <projectListeners>
-        <listener
-            class="com.madmanbeavis.sptidHighlighter.listeners.SptProjectListener"
-            topic="com.intellij.openapi.project.ProjectManagerListener"/>
-    </projectListeners>
+    <actions>
+        <!-- Diagnostic Action -->
+        <action id="com.madmanbeavis.sptidHighlighter.DiagnosticAction"
+                class="com.madmanbeavis.sptidHighlighter.actions.DiagnosticAction"
+                text="SPT ID Highlighter: Show Diagnostics"
+                description="Show diagnostic information about SPT ID Highlighter plugin">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
 </idea-plugin>
