@@ -50,8 +50,6 @@ You can add custom IDs by creating a `.sptids` file in your project root. The fi
 
 Each ID can have translations for any supported language. The plugin will automatically detect changes to this file and reload the data.
 
-[See the wiki for more examples](https://github.com/madmanbeavisx/spt-id-highlighter/wiki/Custom-ID-Support)
-
 ## Development
 
 ### Building from Source
