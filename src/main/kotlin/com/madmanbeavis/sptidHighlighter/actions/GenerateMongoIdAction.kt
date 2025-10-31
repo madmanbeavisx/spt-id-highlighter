@@ -1,3 +1,5 @@
+@file:Suppress("ActionPresentationInstantiatedInCtor", "MissingActionUpdateThread")
+
 package com.madmanbeavis.sptidHighlighter.actions
 
 import com.intellij.openapi.actionSystem.AnAction

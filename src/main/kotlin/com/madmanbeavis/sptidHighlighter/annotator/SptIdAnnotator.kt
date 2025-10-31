@@ -23,14 +23,13 @@ class SptIdAnnotator : Annotator {
         for (match in matches) {
             val potentialId = match.value
 
-            // Check if this is a known SPT ID
-            if (dataService.getItemDetails(potentialId) != null) {
-                val textRange = TextRange(
-                    element.textRange.startOffset + match.range.first,
-                    element.textRange.startOffset + match.range.last + 1
-                )
+            val textRange = TextRange(
+                element.textRange.startOffset + match.range.first,
+                element.textRange.startOffset + match.range.last + 1
+            )
 
-                // Add annotation with italic and underline styling
+            if (dataService.getItemDetails(potentialId) != null) {
+                // Add annotation with italic and underline styling for known IDs
                 holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
                     .range(textRange)
                     .textAttributes(DefaultLanguageHighlighterColors.HIGHLIGHTED_REFERENCE)

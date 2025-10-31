@@ -1,3 +1,4 @@
+<!--suppress ALL -->
 <idea-plugin>
     <id>com.madmanbeavis.spt-id-highlighter</id>
     <name>SPT ID Highlighter</name>
@@ -53,6 +54,7 @@
             language="TypeScript"
             implementationClass="com.madmanbeavis.sptidHighlighter.documentation.SptIdDocumentationProvider"/>
 
+        <!--suppress PluginXmlValidity -->
         <lang.documentationProvider
             language="C#"
             implementationClass="com.madmanbeavis.sptidHighlighter.documentation.SptIdDocumentationProvider"/>
@@ -70,6 +72,7 @@
             language="TypeScript"
             implementationClass="com.madmanbeavis.sptidHighlighter.annotator.SptIdAnnotator"/>
 
+        <!--suppress PluginXmlValidity -->
         <annotator
             language="C#"
             implementationClass="com.madmanbeavis.sptidHighlighter.annotator.SptIdAnnotator"/>

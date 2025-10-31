@@ -13,7 +13,7 @@ open class BuildDataTask : DefaultTask() {
     fun buildData() {
         println("Building SPT data...")
 
-        val projectDir = project.projectDir
+        val projectDir = project.layout.projectDirectory.asFile
         val localesDir = File(projectDir, "src/main/resources/assets/database/locales/global")
         val itemsFile = File(projectDir, "src/main/resources/assets/database/templates/items.json")
         val outputDir = File(projectDir, "src/main/resources/database")

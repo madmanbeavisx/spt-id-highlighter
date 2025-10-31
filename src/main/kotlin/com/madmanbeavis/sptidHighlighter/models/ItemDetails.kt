@@ -40,10 +40,10 @@ data class ItemDetails(
     val bossSpawns: String? = null,
 
     // Quests
-    val trader: String? = null,
-    val traderId: String? = null,
-    val traderLink: String? = null,
-    val questType: String? = null
+    @SerializedName("Trader") val trader: String? = null,
+    @SerializedName("TraderId") val traderId: String? = null,
+    @SerializedName("TraderLink") val traderLink: String? = null,
+    @SerializedName("QuestType") val questType: String? = null
 )
 
 enum class ItemDetailType {

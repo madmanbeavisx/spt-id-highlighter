@@ -47,15 +47,17 @@ class SptIdDocumentationProvider : AbstractDocumentationProvider() {
     private fun buildDocumentation(item: ItemDetails, dataService: SptDataService): String {
         val sb = StringBuilder()
 
-        // Header
-        sb.append("<h3>${item.name}")
-        if (item.name != item.shortName) {
-            sb.append(" [<em>${item.shortName}</em>]")
-        }
-        sb.append("</h3>")
+        // Header with name
+        sb.append("<div style='padding: 8px;'>")
+        sb.append("<div style='font-size: 14px; font-weight: bold; margin-bottom: 8px;'>")
+        sb.append(item.name)
+        sb.append("</div>")
 
-        // Content
-        sb.append("<pre>")
+        // Separator line
+        sb.append("<div style='border-bottom: 1px solid #3C3F41; margin-bottom: 8px;'></div>")
+
+        // Content in monospace
+        sb.append("<div style='font-family: monospace;'>")
 
         appendValueIfDefined(sb, dataService.getTranslation("Type:"), item.type?.name)
 
@@ -66,7 +68,7 @@ class SptIdDocumentationProvider : AbstractDocumentationProvider() {
             } else {
                 sb.append(item.parentID)
             }
-            sb.append("\n")
+            sb.append("<br>")
         }
 
         // Type-specific fields
@@ -93,16 +95,29 @@ class SptIdDocumentationProvider : AbstractDocumentationProvider() {
                 appendValueIfDefined(sb, dataService.getTranslation("Boss Spawns:"), item.bossSpawns)
             }
             ItemDetailType.QUEST -> {
-                if (item.trader != null && item.traderId != null) {
-                    sb.append("${dataService.getTranslation("Trader:")} ${item.trader} - ")
+                if (item.traderId != null) {
+                    // Determine trader name: check if Trader field is an ID or actual name
+                    val traderName = if (item.trader != null) {
+                        // Check if the trader field is actually an ID (24 hex chars)
+                        if (item.trader.matches(Regex("[0-9a-f]{24}", RegexOption.IGNORE_CASE))) {
+                            // It's an ID, look it up
+                            dataService.getItemDetails(item.trader)?.name ?: "Unknown Trader"
+                        } else {
+                            // It's already a name
+                            item.trader
+                        }
+                    } else {
+                        // No trader field, try looking up by traderId
+                        dataService.getItemDetails(item.traderId)?.name ?: "Unknown Trader"
+                    }
+                    
+                    sb.append("${dataService.getTranslation("Trader:")} $traderName - ")
                     if (item.traderLink != null) {
                         sb.append("<a href=\"${item.traderLink}\">${item.traderId}</a>")
                     } else {
                         sb.append(item.traderId)
                     }
-                    sb.append("\n")
-                } else {
-                    appendValueIfDefined(sb, dataService.getTranslation("Trader ID:"), item.traderId)
+                    sb.append("<br>")
                 }
                 appendValueIfDefined(sb, dataService.getTranslation("Quest Type:"), item.questType)
             }
@@ -113,14 +128,17 @@ class SptIdDocumentationProvider : AbstractDocumentationProvider() {
         appendValueIfDefined(sb, dataService.getTranslation("Flea Blacklisted:"), item.fleaBlacklisted)
         appendValueIfDefined(sb, dataService.getTranslation("Unlocked By Default:"), item.unlockedByDefault)
 
-        sb.append("</pre>")
+        sb.append("</div>")
 
         // Detail link
         if (item.detailLink != null) {
-            sb.append("<hr>")
-            sb.append("<p><strong>${dataService.getTranslation("Full Details:")}</strong><br>")
-            sb.append("<a href=\"${item.detailLink}\">${item.detailLink}</a></p>")
+            sb.append("<div style='border-top: 1px solid #3C3F41; margin-top: 8px; padding-top: 8px;'>")
+            sb.append("<strong>${dataService.getTranslation("Full Details:")}</strong><br>")
+            sb.append("<a href=\"${item.detailLink}\">${item.detailLink}</a>")
+            sb.append("</div>")
         }
+
+        sb.append("</div>")
 
         return sb.toString()
     }
@@ -129,7 +147,7 @@ class SptIdDocumentationProvider : AbstractDocumentationProvider() {
         if (value != null) {
             val valueStr = value.toString()
             if (valueStr.isNotBlank()) {
-                sb.append("$key $valueStr\n")
+                sb.append("$key $valueStr<br>")
             }
         }
     }

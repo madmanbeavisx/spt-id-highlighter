@@ -25,3 +25,9 @@ out/
 
 # Generated database files
 src/main/resources/database/
+
+# Plugin signing certificates (DO NOT COMMIT!)
+private_key.pem
+certificate.pem
+certificate_chain.pem
+cert_request.csr
