@@ -53,6 +53,14 @@
             language="TypeScript"
             implementationClass="com.madmanbeavis.sptidHighlighter.documentation.SptIdDocumentationProvider"/>
 
+        <lang.documentationProvider
+            language="C#"
+            implementationClass="com.madmanbeavis.sptidHighlighter.documentation.SptIdDocumentationProvider"/>
+
+        <lang.documentationProvider
+            language="JavaScript"
+            implementationClass="com.madmanbeavis.sptidHighlighter.documentation.SptIdDocumentationProvider"/>
+
         <!-- Annotator -->
         <annotator
             language="JSON"
@@ -60,6 +68,14 @@
 
         <annotator
             language="TypeScript"
+            implementationClass="com.madmanbeavis.sptidHighlighter.annotator.SptIdAnnotator"/>
+
+        <annotator
+            language="C#"
+            implementationClass="com.madmanbeavis.sptidHighlighter.annotator.SptIdAnnotator"/>
+
+        <annotator
+            language="JavaScript"
             implementationClass="com.madmanbeavis.sptidHighlighter.annotator.SptIdAnnotator"/>
     </extensions>
 
@@ -70,6 +86,17 @@
                 text="SPT ID Highlighter: Show Diagnostics"
                 description="Show diagnostic information about SPT ID Highlighter plugin">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+
+        <!-- Generate MongoDB ObjectId Action -->
+        <action id="com.madmanbeavis.sptidHighlighter.GenerateMongoIdAction"
+                class="com.madmanbeavis.sptidHighlighter.actions.GenerateMongoIdAction"
+                text="Generate MongoDB ObjectId"
+                description="Generate a valid MongoDB ObjectId at cursor position">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+            <add-to-group group-id="GenerateGroup" anchor="first"/>
+            <add-to-group group-id="NewGroup" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift alt W"/>
         </action>
     </actions>
 </idea-plugin>
