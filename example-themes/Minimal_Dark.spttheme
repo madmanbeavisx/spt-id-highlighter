@@ -1,0 +1,20 @@
+{
+  "name": "Minimal Dark",
+  "description": "A minimal dark theme with subtle highlighting and muted colors",
+  "author": "SPT Team",
+  "highlightBold": false,
+  "highlightItalic": true,
+  "highlightUnderline": false,
+  "highlightBackground": true,
+  "colorItem": "#88ccff",
+  "colorQuest": "#ffaa88",
+  "colorTrader": "#aaffaa",
+  "colorLocation": "#ffff88",
+  "colorAmmo": "#ff8888",
+  "colorWeapon": "#cc88ff",
+  "colorCustomization": "#88ffcc",
+  "popupDelayMs": 250,
+  "popupBackgroundColor": "#2b2b2b",
+  "popupForegroundColor": "#cccccc",
+  "popupBorderColor": "#3c3f41"
+}

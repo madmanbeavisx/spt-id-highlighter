@@ -6,10 +6,6 @@ data class ItemDetails(
     @SerializedName("Name") val name: String,
     @SerializedName("ShortName") val shortName: String,
     @SerializedName("Type") val type: ItemDetailType? = null,
-    val detailLink: String? = null,
-    val parent: String? = null,
-    val parentID: String? = null,
-    val parentDetailLink: String? = null,
     @SerializedName("FleaBlacklisted") val fleaBlacklisted: Boolean? = null,
     @SerializedName("QuestItem") val questItem: Boolean? = null,
     @SerializedName("Weight") val weight: Double? = null,
@@ -21,7 +17,6 @@ data class ItemDetails(
     @SerializedName("PenetrationPower") val penetrationPower: Int? = null,
 
     // Traders
-    val currency: String? = null,
     val unlockedByDefault: Boolean? = null,
 
     // Customization Items
@@ -62,5 +57,6 @@ enum class ItemDetailType {
     TRADER,
     CUSTOMIZATION,
     LOCATION,
-    QUEST
+    QUEST,
+    CATEGORY
 }

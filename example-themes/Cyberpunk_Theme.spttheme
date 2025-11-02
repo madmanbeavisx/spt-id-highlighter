@@ -1,0 +1,20 @@
+{
+  "name": "Cyberpunk Theme",
+  "description": "A cyberpunk-inspired theme with neon colors",
+  "author": "Example Author",
+  "highlightBold": false,
+  "highlightItalic": true,
+  "highlightUnderline": true,
+  "highlightBackground": false,
+  "colorItem": "#00ffff",
+  "colorQuest": "#ff00ff",
+  "colorTrader": "#ffff00",
+  "colorLocation": "#00ff00",
+  "colorAmmo": "#ff6600",
+  "colorWeapon": "#ff0066",
+  "colorCustomization": "#9900ff",
+  "popupDelayMs": 300,
+  "popupBackgroundColor": "#1a1a2e",
+  "popupForegroundColor": "#eeeeff",
+  "popupBorderColor": "#ff00ff"
+}

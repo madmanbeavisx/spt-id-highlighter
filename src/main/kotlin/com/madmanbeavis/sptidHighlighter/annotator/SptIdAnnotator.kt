@@ -3,10 +3,10 @@ package com.madmanbeavis.sptidHighlighter.annotator
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
-import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.madmanbeavis.sptidHighlighter.services.SptDataService
+import com.madmanbeavis.sptidHighlighter.utils.HighlightStyleHelper
 
 class SptIdAnnotator : Annotator {
 
@@ -28,11 +28,15 @@ class SptIdAnnotator : Annotator {
                 element.textRange.startOffset + match.range.last + 1
             )
 
-            if (dataService.getItemDetails(potentialId) != null) {
-                // Add annotation with italic and underline styling for known IDs
+            val itemDetails = dataService.getItemDetails(potentialId)
+            if (itemDetails != null) {
+                // Get custom text attributes based on user settings and item type
+                val textAttributes = HighlightStyleHelper.getTextAttributesForType(itemDetails.type)
+
+                // Add annotation with custom styling
                 holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
                     .range(textRange)
-                    .textAttributes(DefaultLanguageHighlighterColors.HIGHLIGHTED_REFERENCE)
+                    .enforcedTextAttributes(textAttributes)
                     .create()
             }
         }

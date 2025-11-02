@@ -12,12 +12,40 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 )
 class SptIdSettingsState : PersistentStateComponent<SptIdSettingsState> {
     var language: String = "en"
+    var customIdFilenames: MutableList<String> = mutableListOf(".sptids", "sptids.json")
+
+    // Highlight style settings
+    var highlightBold: Boolean = false
+    var highlightItalic: Boolean = true
+    var highlightUnderline: Boolean = true
+    var highlightBackground: Boolean = false
+
+    // Highlight colors (stored as hex strings, format: "lightColor|darkColor" or single color, null = use default)
+    var colorItem: String? = null
+    var colorQuest: String? = null
+    var colorTrader: String? = null
+    var colorLocation: String? = null
+    var colorAmmo: String? = null
+    var colorWeapon: String? = null
+    var colorCustomization: String? = null
+
+    // Documentation popup delay in milliseconds
+    var popupDelayMs: Int = DEFAULT_POPUP_DELAY_MS
+
+    // Popup theme colors (stored as hex strings, format: "lightColor|darkColor" or single color, null = use IDE theme defaults)
+    var popupBackgroundColor: String? = null
+    var popupForegroundColor: String? = null
+    var popupBorderColor: String? = null
 
     companion object {
+        const val DEFAULT_POPUP_DELAY_MS = 300
+        const val DEFAULT_FALLBACK_LANGUAGE = "en"
+
         fun getInstance(): SptIdSettingsState {
             return ApplicationManager.getApplication().getService(SptIdSettingsState::class.java)
         }
 
+        @JvmField
         val SUPPORTED_LANGUAGES = listOf(
             "ch" to "Simplified Chinese",
             "cz" to "Czech",

@@ -4,6 +4,7 @@ import com.intellij.lang.documentation.AbstractDocumentationProvider
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.ui.JBColor
 import com.madmanbeavis.sptidHighlighter.models.ItemDetailType
 import com.madmanbeavis.sptidHighlighter.models.ItemDetails
 import com.madmanbeavis.sptidHighlighter.services.SptDataService
@@ -46,30 +47,30 @@ class SptIdDocumentationProvider : AbstractDocumentationProvider() {
 
     private fun buildDocumentation(item: ItemDetails, dataService: SptDataService): String {
         val sb = StringBuilder()
+        val settings = com.madmanbeavis.sptidHighlighter.settings.SptIdSettingsState.getInstance()
+
+        // Get custom colors or use defaults (no background color - let IDE handle it)
+        // Extract color appropriate for current theme (light or dark)
+        val fgColor =
+            settings.popupForegroundColor?.let { extractColorForCurrentTheme(it) } ?: getDefaultForegroundColor()
+        val borderColor = settings.popupBorderColor?.let { extractColorForCurrentTheme(it) } ?: "#3C3F41"
+
+        // Simple wrapper - no background, let IDE theme handle it
+        val colorStyle = if (fgColor != "inherit") "color: $fgColor;" else ""
+        sb.append("<div style='padding: 8px; $colorStyle'>")
 
         // Header with name
-        sb.append("<div style='padding: 8px;'>")
         sb.append("<div style='font-size: 14px; font-weight: bold; margin-bottom: 8px;'>")
         sb.append(item.name)
         sb.append("</div>")
 
         // Separator line
-        sb.append("<div style='border-bottom: 1px solid #3C3F41; margin-bottom: 8px;'></div>")
+        sb.append("<div style='border-bottom: 1px solid $borderColor; margin-bottom: 8px;'></div>")
 
         // Content in monospace
         sb.append("<div style='font-family: monospace;'>")
 
         appendValueIfDefined(sb, dataService.getTranslation("Type:"), item.type?.name)
-
-        if (item.parent != null && item.parentID != null) {
-            sb.append("${dataService.getTranslation("Parent:")} ${item.parent} - ")
-            if (item.parentDetailLink != null) {
-                sb.append("<a href=\"${item.parentDetailLink}\">${item.parentID}</a>")
-            } else {
-                sb.append(item.parentID)
-            }
-            sb.append("<br>")
-        }
 
         // Type-specific fields
         when (item.type) {
@@ -96,22 +97,9 @@ class SptIdDocumentationProvider : AbstractDocumentationProvider() {
             }
             ItemDetailType.QUEST -> {
                 if (item.traderId != null) {
-                    // Determine trader name: check if Trader field is an ID or actual name
-                    val traderName = if (item.trader != null) {
-                        // Check if the trader field is actually an ID (24 hex chars)
-                        if (item.trader.matches(Regex("[0-9a-f]{24}", RegexOption.IGNORE_CASE))) {
-                            // It's an ID, look it up
-                            dataService.getItemDetails(item.trader)?.name ?: "Unknown Trader"
-                        } else {
-                            // It's already a name
-                            item.trader
-                        }
-                    } else {
-                        // No trader field, try looking up by traderId
-                        dataService.getItemDetails(item.traderId)?.name ?: "Unknown Trader"
-                    }
-                    
+                    val traderName = resolveTraderName(item.trader, item.traderId, dataService)
                     sb.append("${dataService.getTranslation("Trader:")} $traderName - ")
+
                     if (item.traderLink != null) {
                         sb.append("<a href=\"${item.traderLink}\">${item.traderId}</a>")
                     } else {
@@ -130,17 +118,53 @@ class SptIdDocumentationProvider : AbstractDocumentationProvider() {
 
         sb.append("</div>")
 
-        // Detail link
-        if (item.detailLink != null) {
-            sb.append("<div style='border-top: 1px solid #3C3F41; margin-top: 8px; padding-top: 8px;'>")
-            sb.append("<strong>${dataService.getTranslation("Full Details:")}</strong><br>")
-            sb.append("<a href=\"${item.detailLink}\">${item.detailLink}</a>")
-            sb.append("</div>")
-        }
-
-        sb.append("</div>")
+        sb.append("</div>") // Close main wrapper
 
         return sb.toString()
+    }
+
+    private fun getDefaultBackgroundColor(): String {
+        // Try to detect if we're in dark mode or light mode
+        // For now, return transparent to let IDE theme handle it
+        return "transparent"
+    }
+
+    private fun getDefaultForegroundColor(): String {
+        // Return inherit to use IDE's default text color
+        return "inherit"
+    }
+
+    /**
+     * Extracts the appropriate color for the current theme (light or dark).
+     * Handles both single color and "lightColor|darkColor" formats.
+     */
+    private fun extractColorForCurrentTheme(colorString: String): String {
+        if (!colorString.contains("|")) {
+            return colorString // Single color format
+        }
+
+        // Dual color format: "lightColor|darkColor"
+        val parts = colorString.split("|")
+        if (parts.size != 2) return colorString
+
+        // Detect if we're in dark mode by checking if IDE background is dark
+        val isDarkMode = JBColor.isBright()
+        return if (isDarkMode) parts[1] else parts[0]
+    }
+
+    private fun addAlphaToColor(hexColor: String, alpha: Double): String {
+        if (hexColor == "transparent") return "transparent"
+        if (hexColor == "inherit") return "inherit"
+
+        return try {
+            val color = java.awt.Color.decode(hexColor)
+            val r = color.red
+            val g = color.green
+            val b = color.blue
+            "rgba($r, $g, $b, $alpha)"
+        } catch (e: Exception) {
+            hexColor
+        }
     }
 
     private fun appendValueIfDefined(sb: StringBuilder, key: String, value: Any?) {
@@ -150,5 +174,25 @@ class SptIdDocumentationProvider : AbstractDocumentationProvider() {
                 sb.append("$key $valueStr<br>")
             }
         }
+    }
+
+    /**
+     * Resolves a trader name from trader and traderId fields.
+     * First checks if trader field contains a name or ID, then falls back to traderId lookup.
+     */
+    private fun resolveTraderName(trader: String?, traderId: String?, dataService: SptDataService): String {
+        // If trader field exists, check if it's an ID or a name
+        trader?.let {
+            return if (it.matches(Regex("[0-9a-f]{24}", RegexOption.IGNORE_CASE))) {
+                // It's an ID, look it up
+                dataService.getItemDetails(it)?.name ?: "Unknown Trader"
+            } else {
+                // It's already a name
+                it
+            }
+        }
+
+        // Fall back to traderId lookup
+        return traderId?.let { dataService.getItemDetails(it)?.name } ?: "Unknown Trader"
     }
 }

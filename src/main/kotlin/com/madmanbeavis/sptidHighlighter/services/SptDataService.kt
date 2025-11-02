@@ -1,7 +1,6 @@
 package com.madmanbeavis.sptidHighlighter.services
 
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.madmanbeavis.sptidHighlighter.models.ItemDetails
 import com.madmanbeavis.sptidHighlighter.services.utils.ResourceLoader
@@ -20,6 +19,11 @@ class SptDataService {
     private var customItems: Map<String, ItemDetails> = emptyMap()
 
     companion object {
+        private const val DATABASE_PATH_PREFIX = "/database/"
+        private const val TRANSLATIONS_PATH_PREFIX = "/translations/"
+        private const val JSON_EXTENSION = ".json"
+        private const val DEFAULT_LANGUAGE = "en"
+
         fun getInstance(): SptDataService {
             return ApplicationManager.getApplication().getService(SptDataService::class.java)
         }
@@ -47,7 +51,7 @@ class SptDataService {
     }
 
     private fun loadItemsData(language: String): MutableMap<String, ItemDetails> {
-        val resourcePath = "/database/$language.json"
+        val resourcePath = "$DATABASE_PATH_PREFIX$language$JSON_EXTENSION"
 
         return try {
             val data = ResourceLoader.loadJsonResource<Map<String, ItemDetails>>(resourcePath)
@@ -61,9 +65,9 @@ class SptDataService {
             logger.error("Failed to load items data for language: $language", e)
 
             // Fallback to English if not already trying English
-            if (language != "en") {
+            if (language != DEFAULT_LANGUAGE) {
                 logger.info("Falling back to English for items data")
-                loadItemsData("en")
+                loadItemsData(DEFAULT_LANGUAGE)
             } else {
                 logger.warn("Failed to load English items data, using empty map")
                 mutableMapOf()
@@ -72,7 +76,7 @@ class SptDataService {
     }
 
     private fun loadTranslations(language: String): Map<String, String> {
-        val resourcePath = "/translations/$language.json"
+        val resourcePath = "$TRANSLATIONS_PATH_PREFIX$language$JSON_EXTENSION"
 
         return try {
             val data = ResourceLoader.loadJsonResource<Map<String, String>>(resourcePath)
@@ -82,9 +86,9 @@ class SptDataService {
             logger.error("Failed to load translations for language: $language", e)
 
             // Fallback to English if not already trying English
-            if (language != "en") {
+            if (language != DEFAULT_LANGUAGE) {
                 logger.info("Falling back to English for translations")
-                loadTranslations("en")
+                loadTranslations(DEFAULT_LANGUAGE)
             } else {
                 logger.warn("Failed to load English translations, using empty map")
                 emptyMap()

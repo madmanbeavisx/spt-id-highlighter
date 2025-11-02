@@ -2,21 +2,41 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import java.io.File
+import java.util.logging.Logger
 
-open class BuildDataTask : DefaultTask() {
+abstract class BuildDataTask : DefaultTask() {
+
+    @get:InputDirectory
+    abstract val localesDirectory: DirectoryProperty
+
+    @get:InputFile
+    abstract val itemsFile: RegularFileProperty
+
+    @get:InputFile
+    abstract val handbookFile: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
 
     private val gson = Gson()
+    private val logger = Logger.getLogger(BuildDataTask::class.java.name)
 
     @TaskAction
     fun buildData() {
-        println("Building SPT data...")
+        logger.info("Building SPT data...")
 
-        val projectDir = project.layout.projectDirectory.asFile
-        val localesDir = File(projectDir, "src/main/resources/assets/database/locales/global")
-        val itemsFile = File(projectDir, "src/main/resources/assets/database/templates/items.json")
-        val outputDir = File(projectDir, "src/main/resources/database")
+        localesDirectory.asFile.get().parentFile.parentFile.parentFile.parentFile.parentFile
+        val localesDir = localesDirectory.asFile.get()
+        val itemsFile = itemsFile.asFile.get()
+        val handbookFile = handbookFile.asFile.get()
+        val outputDir = outputDirectory.asFile.get()
 
         if (!outputDir.exists()) {
             outputDir.mkdirs()
@@ -25,16 +45,19 @@ open class BuildDataTask : DefaultTask() {
         // Load items data first
         val itemsData = loadItemsData(itemsFile)
 
-        optimizeLocales(localesDir, outputDir, itemsData)
+        // Load handbook categories
+        val categoriesData = loadCategoriesData(handbookFile)
 
-        println("SPT data built successfully.")
+        optimizeLocales(localesDir, outputDir, itemsData, categoriesData)
+
+        logger.info("SPT data built successfully.")
     }
 
     private fun loadItemsData(itemsFile: File): Map<String, JsonObject> {
-        println("Loading items data...")
+        logger.info("Loading items data...")
 
         if (!itemsFile.exists()) {
-            println("Items file not found: ${itemsFile.absolutePath}")
+            logger.warning("Items file not found: ${itemsFile.absolutePath}")
             return emptyMap()
         }
 
@@ -43,15 +66,61 @@ open class BuildDataTask : DefaultTask() {
             object : TypeToken<Map<String, JsonObject>>() {}.type
         )
 
-        println("Loaded ${itemsJson.size} items")
+        logger.info("Loaded ${itemsJson.size} items")
         return itemsJson
     }
 
-    private fun optimizeLocales(localesDir: File, outputDir: File, itemsData: Map<String, JsonObject>) {
-        println("Optimizing locale data...")
+    private fun loadCategoriesData(handbookFile: File): Map<String, JsonObject> {
+        logger.info("Loading categories data...")
+
+        if (!handbookFile.exists()) {
+            logger.warning("Handbook file not found: ${handbookFile.absolutePath}")
+            return emptyMap()
+        }
+
+        val handbookJson = gson.fromJson(
+            handbookFile.readText(),
+            JsonObject::class.java
+        )
+
+        val categoriesArray = handbookJson.getAsJsonArray("Categories")
+        val categoriesMap = mutableMapOf<String, JsonObject>()
+
+        categoriesArray?.forEach { element ->
+            val category = element.asJsonObject
+            val id = category.get("Id")?.asString
+            if (id != null) {
+                val categoryData = JsonObject()
+                categoryData.addProperty("_parent", "CATEGORY")
+
+                val parentId = category.get("ParentId")
+                if (parentId != null && !parentId.isJsonNull) {
+                    categoryData.addProperty("ParentId", parentId.asString)
+                }
+
+                val icon = category.get("Icon")
+                if (icon != null && !icon.isJsonNull) {
+                    categoryData.addProperty("Icon", icon.asString)
+                }
+
+                categoriesMap[id] = categoryData
+            }
+        }
+
+        logger.info("Loaded ${categoriesMap.size} categories")
+        return categoriesMap
+    }
+
+    private fun optimizeLocales(
+        localesDir: File,
+        outputDir: File,
+        itemsData: Map<String, JsonObject>,
+        categoriesData: Map<String, JsonObject>
+    ) {
+        logger.info("Optimizing locale data...")
 
         if (!localesDir.exists()) {
-            println("Locales directory not found: ${localesDir.absolutePath}")
+            logger.warning("Locales directory not found: ${localesDir.absolutePath}")
             return
         }
 
@@ -104,10 +173,38 @@ open class BuildDataTask : DefaultTask() {
                 }
             }
 
-            // Enrich with item data
+            // Add items from items.json that don't have locale entries
+            itemsData.forEach { (id, itemJson) ->
+                if (!transformedData.containsKey(id)) {
+                    val itemName = itemJson.get("_name")?.asString
+                    if (itemName != null) {
+                        val itemData = mutableMapOf<String, Any>(
+                            "Name" to itemName,
+                            "ShortName" to itemName
+                        )
+                        transformedData[id] = itemData
+                    }
+                }
+            }
+
+            // Add categories from handbook that don't have locale entries
+            categoriesData.forEach { (id, _) ->
+                if (!transformedData.containsKey(id)) {
+                    val itemData = mutableMapOf<String, Any>(
+                        "Name" to id,  // Use ID as fallback name
+                        "ShortName" to id
+                    )
+                    transformedData[id] = itemData
+                }
+            }
+
+            // Enrich with item data and category data
             transformedData.forEach { (id, itemData) ->
                 itemsData[id]?.let { itemJson ->
                     enrichItemData(itemData, itemJson, itemsData)
+                }
+                categoriesData[id]?.let { categoryJson ->
+                    enrichCategoryData(itemData, categoryJson)
                 }
             }
 
@@ -119,16 +216,32 @@ open class BuildDataTask : DefaultTask() {
 
             if (filtered.isNotEmpty()) {
                 outputFile.writeText(gson.toJson(filtered))
-                println("Optimized ${outputFile.name}")
+                logger.fine("Optimized ${outputFile.name}")
             } else {
-                println("No valid entries found for ${outputFile.name}, no file written.")
+                logger.fine("No valid entries found for ${outputFile.name}, no file written.")
             }
         }
 
-        println("Locale data optimized.")
+        logger.info("Locale data optimized.")
     }
 
     private fun enrichItemData(itemData: MutableMap<String, Any>, itemJson: JsonObject, itemsData: Map<String, JsonObject>) {
+        // Check for _type field (Node, Item, etc.)
+        val itemType = itemJson.get("_type")?.asString
+        if (itemType == "Node") {
+            itemData["Type"] = "ITEM"  // Treat nodes as generic items
+
+            // Check if _props exists and has IsEncoded
+            itemJson.getAsJsonObject("_props")?.let { props ->
+                props.get("IsEncoded")?.let { encoded ->
+                    if (!encoded.isJsonNull) {
+                        itemData["IsEncoded"] = encoded.asBoolean
+                    }
+                }
+            }
+            return
+        }
+
         val props = itemJson.getAsJsonObject("_props") ?: return
 
         // Add Weight
@@ -265,8 +378,28 @@ open class BuildDataTask : DefaultTask() {
         }
     }
 
+    private fun enrichCategoryData(itemData: MutableMap<String, Any>, categoryJson: JsonObject) {
+        // Set type to CATEGORY
+        itemData["Type"] = "CATEGORY"
+
+        // Add ParentId if present
+        categoryJson.get("ParentId")?.let { parentId ->
+            if (!parentId.isJsonNull) {
+                itemData["ParentId"] = parentId.asString
+            }
+        }
+
+        // Add Icon if present
+        categoryJson.get("Icon")?.let { icon ->
+            if (!icon.isJsonNull) {
+                itemData["Icon"] = icon.asString
+            }
+        }
+    }
+
     private fun determineItemType(parentId: String): String {
         return when (parentId) {
+            "CATEGORY" -> "CATEGORY"
             "5485a8684bdc2da71d8b4567" -> "AMMO"
             "543be5cb4bdc2deb348b4568" -> "AMMO" // Ammo container/pack
             "5447b5cf4bdc2d65278b4567", "5447b5e04bdc2d62278b4567", "5447b5f14bdc2d61278b4567",

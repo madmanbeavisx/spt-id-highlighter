@@ -1,7 +1,7 @@
 package com.madmanbeavis.sptidHighlighter.services
 
-import com.google.gson.*
-import com.intellij.openapi.components.Service
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonParser
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -11,9 +11,12 @@ import com.intellij.openapi.vfs.newvfs.events.VFileContentChangeEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileCreateEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileDeleteEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
-import com.madmanbeavis.sptidHighlighter.models.ItemDetails
 import com.madmanbeavis.sptidHighlighter.models.ItemDetailType
-import com.madmanbeavis.sptidHighlighter.services.deserializers.*
+import com.madmanbeavis.sptidHighlighter.models.ItemDetails
+import com.madmanbeavis.sptidHighlighter.services.deserializers.FlexibleBooleanDeserializer
+import com.madmanbeavis.sptidHighlighter.services.deserializers.FlexibleDoubleDeserializer
+import com.madmanbeavis.sptidHighlighter.services.deserializers.FlexibleIntDeserializer
+import com.madmanbeavis.sptidHighlighter.services.deserializers.ItemDetailTypeDeserializer
 import com.madmanbeavis.sptidHighlighter.services.utils.FileSearchUtils
 import com.madmanbeavis.sptidHighlighter.settings.SptIdSettingsState
 
@@ -29,7 +32,6 @@ class SptIdsFileWatcher(private val project: Project) {
         .registerTypeAdapter(Double::class.javaObjectType, FlexibleDoubleDeserializer())
         .setLenient() // Allow lenient parsing for malformed JSON
         .create()
-    private val SPTIDS_FILENAME = ".sptids"
 
     init {
         setupFileWatcher()
@@ -41,16 +43,17 @@ class SptIdsFileWatcher(private val project: Project) {
             VirtualFileManager.VFS_CHANGES,
             object : BulkFileListener {
                 override fun after(events: List<VFileEvent>) {
+                    val customFilenames = SptIdSettingsState.getInstance().customIdFilenames
                     for (event in events) {
                         val file = event.file ?: continue
-                        if (file.name == SPTIDS_FILENAME) {
+                        if (customFilenames.contains(file.name)) {
                             when (event) {
                                 is VFileCreateEvent, is VFileContentChangeEvent -> {
-                                    logger.info("Detected $SPTIDS_FILENAME change at ${file.path}, reloading all...")
+                                    logger.info("Detected ${file.name} change at ${file.path}, reloading all...")
                                     loadAllCustomIds()
                                 }
                                 is VFileDeleteEvent -> {
-                                    logger.info("Detected $SPTIDS_FILENAME deletion at ${file.path}, reloading all...")
+                                    logger.info("Detected ${file.name} deletion at ${file.path}, reloading all...")
                                     loadAllCustomIds()
                                 }
                             }
@@ -67,13 +70,15 @@ class SptIdsFileWatcher(private val project: Project) {
 
     private fun loadAllCustomIds() {
         val allCustomItems = mutableMapOf<String, ItemDetails>()
-        val currentLanguage = SptIdSettingsState.getInstance().language
+        val settings = SptIdSettingsState.getInstance()
+        val currentLanguage = settings.language
+        val customFilenames = settings.customIdFilenames
 
-        logger.info("Starting to load .sptids files. Current language: $currentLanguage")
+        logger.info("Starting to load custom ID files. Current language: $currentLanguage, Filenames: $customFilenames")
 
         project.baseDir?.let { baseDir ->
-            val sptIdsFiles = findAllSptIdsFiles(baseDir)
-            logger.info("Found ${sptIdsFiles.size} .sptids files")
+            val sptIdsFiles = findAllCustomIdFiles(baseDir, customFilenames)
+            logger.info("Found ${sptIdsFiles.size} custom ID files")
 
             sptIdsFiles.forEach { file ->
                 try {
@@ -94,9 +99,21 @@ class SptIdsFileWatcher(private val project: Project) {
                                 if (value.isJsonObject) {
                                     val langData = value.asJsonObject
                                     logger.info("ID $id has language data keys: ${langData.keySet()}")
-                                    langData.get(currentLanguage)?.let { langElement ->
-                                        logger.info("Found language data for $currentLanguage: $langElement")
-                                        val details = gson.fromJson<ItemDetails>(langElement, ItemDetails::class.java)
+
+                                    // Try current language first, then fallback to English, then any available language
+                                    val langElement = langData.get(currentLanguage)
+                                        ?: run {
+                                            logger.info("No '$currentLanguage' data for ID $id, trying fallback language")
+                                            langData.get(SptIdSettingsState.DEFAULT_FALLBACK_LANGUAGE)
+                                        }
+                                        ?: run {
+                                            logger.info("No fallback language data for ID $id, using first available")
+                                            langData.entrySet().firstOrNull()?.value
+                                        }
+
+                                    langElement?.let { element ->
+                                        logger.info("Found language data for ID $id: $element")
+                                        val details = gson.fromJson<ItemDetails>(element, ItemDetails::class.java)
                                         if (details != null && details.name.isNotEmpty()) {
                                             allCustomItems[id] = details
                                             loadedCount++
@@ -104,7 +121,7 @@ class SptIdsFileWatcher(private val project: Project) {
                                         } else {
                                             logger.warn("Parsed ID $id but details are null or have empty name")
                                         }
-                                    } ?: logger.warn("No '$currentLanguage' language data found for ID $id")
+                                    } ?: logger.warn("No language data found for ID $id in any language")
                                 } else {
                                     logger.warn("ID $id value is not a JSON object: ${value.javaClass.simpleName}")
                                 }
@@ -115,17 +132,21 @@ class SptIdsFileWatcher(private val project: Project) {
                         logger.info("Successfully loaded $loadedCount items from ${file.name}")
                     }
                 } catch (e: Exception) {
-                    logger.error("Failed to load $SPTIDS_FILENAME file: ${file.path}", e)
+                    logger.error("Failed to load custom ID file: ${file.path}", e)
                 }
             }
-        } ?: logger.warn("Project baseDir is null, cannot search for .sptids files")
+        } ?: logger.warn("Project baseDir is null, cannot search for custom ID files")
 
         SptDataService.getInstance().setCustomItems(allCustomItems)
         logger.info("Loaded total of ${allCustomItems.size} custom items")
     }
 
-    private fun findAllSptIdsFiles(directory: VirtualFile?): List<VirtualFile> {
-        return FileSearchUtils.findAllFilesRecursively(directory, SPTIDS_FILENAME)
+    private fun findAllCustomIdFiles(directory: VirtualFile?, filenames: List<String>): List<VirtualFile> {
+        val allFiles = mutableListOf<VirtualFile>()
+        for (filename in filenames) {
+            allFiles.addAll(FileSearchUtils.findAllFilesRecursively(directory, filename))
+        }
+        return allFiles
     }
 
 }
