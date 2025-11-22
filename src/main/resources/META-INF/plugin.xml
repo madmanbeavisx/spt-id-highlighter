@@ -1,38 +1,5 @@
 <!--suppress ALL -->
 <idea-plugin>
-    <id>com.madmanbeavis.spt-id-highlighter</id>
-    <name>SPT ID Highlighter</name>
-    <vendor email="madmanbeavis@gmail.com" url="https://github.com/madmanbeavisx">MadManBeavis</vendor>
-
-    <description><![CDATA[
-    A comprehensive development tool for the <a href="https://github.com/sp-tarkov">Single Player Tarkov</a> project. Provides intelligent ID recognition, rich documentation, and extensive customization for SPT game object development.
-    <br><br>
-    <b>Core Features:</b>
-    <ul>
-        <li><b>Smart ID Recognition:</b> Automatic detection and highlighting of 24-character SPT IDs across JSON, TypeScript, JavaScript, and C# files</li>
-        <li><b>Comprehensive Database:</b> Built-in support for 4,195+ items, 87 categories, quests, traders, locations, and all SPT game objects</li>
-        <li><b>Rich Documentation Popups:</b> Hover over any ID to see detailed information including names, descriptions, stats, and metadata in 17 languages</li>
-        <li><b>Custom ID Management:</b> Define your own IDs in configurable files (.sptids, sptids.json) with instant live-reload</li>
-        <li><b>MongoDB ID Generator:</b> Generate valid MongoDB ObjectIds with a single keystroke (Ctrl+Shift+Alt+W)</li>
-    </ul>
-    <br>
-    <b>Customization & Theming:</b>
-    <ul>
-        <li><b>Flexible Highlighting:</b> Customize text styles (bold, italic, underline) and background highlighting per your preference</li>
-        <li><b>Type-Specific Colors:</b> Assign different colors for Items, Ammo, Weapons, Quests, Traders, Locations, and Customization items</li>
-        <li><b>Popup Themes:</b> Choose from built-in themes (Default IDE, Light, Dark, Blue, Red, Purple) or create custom color schemes</li>
-        <li><b>Theme Sharing:</b> Export and import theme configurations (.spttheme files) to share with your team</li>
-        <li><b>Configurable Delays:</b> Adjust popup timing to match your workflow</li>
-    </ul>
-    <br>
-    <b>Multilingual Support:</b>
-    <ul>
-        <li>17 languages: English, Russian, Chinese (Simplified), Czech, Spanish, Mexican Spanish, French, German, Hungarian, Italian, Japanese, Korean, Polish, Portuguese, Romanian, Slovak, Turkish</li>
-    </ul>
-    <br>
-    <b>Perfect for SPT mod developers, server administrators, and contributors working with Tarkov game data.</b>
-    ]]></description>
-
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.lang</depends>
     <depends>JavaScript</depends>
@@ -62,23 +29,22 @@
         <!-- Notification Group -->
         <notificationGroup id="SPT ID Highlighter" displayType="BALLOON"/>
 
-        <!-- Documentation Provider -->
-        <lang.documentationProvider
+        <!-- Inlay Hints for SPT IDs -->
+        <codeInsight.inlayProvider
+                language="C#"
+                implementationClass="com.madmanbeavis.sptidHighlighter.hints.SptIdInlayHintProvider"/>
+
+        <codeInsight.inlayProvider
             language="JSON"
-            implementationClass="com.madmanbeavis.sptidHighlighter.documentation.SptIdDocumentationProvider"/>
+            implementationClass="com.madmanbeavis.sptidHighlighter.hints.SptIdInlayHintProvider"/>
 
-        <lang.documentationProvider
+        <codeInsight.inlayProvider
             language="TypeScript"
-            implementationClass="com.madmanbeavis.sptidHighlighter.documentation.SptIdDocumentationProvider"/>
+            implementationClass="com.madmanbeavis.sptidHighlighter.hints.SptIdInlayHintProvider"/>
 
-        <!--suppress PluginXmlValidity -->
-        <lang.documentationProvider
-            language="C#"
-            implementationClass="com.madmanbeavis.sptidHighlighter.documentation.SptIdDocumentationProvider"/>
-
-        <lang.documentationProvider
+        <codeInsight.inlayProvider
             language="JavaScript"
-            implementationClass="com.madmanbeavis.sptidHighlighter.documentation.SptIdDocumentationProvider"/>
+            implementationClass="com.madmanbeavis.sptidHighlighter.hints.SptIdInlayHintProvider"/>
 
         <!-- Annotator -->
         <annotator
@@ -89,7 +55,6 @@
             language="TypeScript"
             implementationClass="com.madmanbeavis.sptidHighlighter.annotator.SptIdAnnotator"/>
 
-        <!--suppress PluginXmlValidity -->
         <annotator
             language="C#"
             implementationClass="com.madmanbeavis.sptidHighlighter.annotator.SptIdAnnotator"/>
@@ -113,8 +78,8 @@
                 class="com.madmanbeavis.sptidHighlighter.actions.GenerateMongoIdAction"
                 text="Generate MongoDB ObjectId"
                 description="Generate a valid MongoDB ObjectId at cursor position">
-            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
-            <add-to-group group-id="GenerateGroup" anchor="first"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <add-to-group group-id="GenerateGroup" anchor="last"/>
             <add-to-group group-id="NewGroup" anchor="last"/>
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift alt W"/>
         </action>

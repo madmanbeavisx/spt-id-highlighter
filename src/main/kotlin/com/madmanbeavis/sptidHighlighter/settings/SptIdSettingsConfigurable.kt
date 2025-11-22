@@ -7,8 +7,6 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
 import com.intellij.psi.PsiManager
 import com.intellij.ui.ColorPanel
-import com.intellij.ui.Gray
-import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
@@ -17,7 +15,6 @@ import com.intellij.util.ui.JBUI
 import com.madmanbeavis.sptidHighlighter.models.ThemePreset
 import com.madmanbeavis.sptidHighlighter.services.SptDataService
 import com.madmanbeavis.sptidHighlighter.utils.ColorUtils
-import java.awt.Color
 import java.io.File
 import javax.swing.*
 
@@ -40,9 +37,9 @@ class SptIdSettingsConfigurable : Configurable {
         return component.getSelectedLanguage() != settings.language ||
                 component.getCustomIdFilenames() != settings.customIdFilenames ||
                 component.isHighlightStyleModified(settings) ||
-                component.isHighlightColorsModified(settings) ||
-                component.getPopupDelay() != settings.popupDelayMs ||
-                component.isPopupThemeModified(settings)
+                component.isHighlightColorsModified(settings)
+        // || component.getPopupDelay() != settings.popupDelayMs ||
+        // component.isPopupThemeModified(settings)
     }
 
     override fun apply() {
@@ -76,9 +73,9 @@ class SptIdSettingsConfigurable : Configurable {
         // Apply highlight colors
         component.applyHighlightColors(settings)
 
-        // Apply popup settings
-        settings.popupDelayMs = component.getPopupDelay()
-        component.applyPopupTheme(settings)
+        // Apply popup settings (DEPRECATED - kept for backwards compatibility)
+        // settings.popupDelayMs = component.getPopupDelay()
+        // component.applyPopupTheme(settings)
 
         if (needsReload) {
             // Reload data with new settings
@@ -108,8 +105,8 @@ class SptIdSettingsConfigurable : Configurable {
             setCustomIdFilenames(settings.customIdFilenames)
             resetHighlightStyle(settings)
             resetHighlightColors(settings)
-            setPopupDelay(settings.popupDelayMs)
-            resetPopupTheme(settings)
+            // setPopupDelay(settings.popupDelayMs)
+            // resetPopupTheme(settings)
         }
     }
 
@@ -137,13 +134,13 @@ class SptIdSettingsConfigurable : Configurable {
         private val colorWeaponPanel: ColorPanel
         private val colorCustomizationPanel: ColorPanel
 
-        // Popup settings
-        private val popupDelayField: JBTextField
+        // Popup settings (DEPRECATED - kept for backwards compatibility)
+        // private val popupDelayField: JBTextField
 
-        // Popup theme colors
-        private val popupBackgroundPanel: ColorPanel
-        private val popupForegroundPanel: ColorPanel
-        private val popupBorderPanel: ColorPanel
+        // Popup theme colors (DEPRECATED - kept for backwards compatibility)
+        // private val popupBackgroundPanel: ColorPanel
+        // private val popupForegroundPanel: ColorPanel
+        // private val popupBorderPanel: ColorPanel
 
         init {
             val languageOptions = SptIdSettingsState.SUPPORTED_LANGUAGES.map { it.second }.toTypedArray()
@@ -167,14 +164,14 @@ class SptIdSettingsConfigurable : Configurable {
             colorWeaponPanel = ColorPanel()
             colorCustomizationPanel = ColorPanel()
 
-            // Initialize popup settings
-            popupDelayField = JBTextField()
-            popupDelayField.toolTipText = "Delay in milliseconds before popup appears"
+            // Initialize popup settings (DEPRECATED - kept for backwards compatibility)
+            // popupDelayField = JBTextField()
+            // popupDelayField.toolTipText = "Delay in milliseconds before popup appears"
 
-            // Initialize popup theme colors
-            popupBackgroundPanel = ColorPanel()
-            popupForegroundPanel = ColorPanel()
-            popupBorderPanel = ColorPanel()
+            // Initialize popup theme colors (DEPRECATED - kept for backwards compatibility)
+            // popupBackgroundPanel = ColorPanel()
+            // popupForegroundPanel = ColorPanel()
+            // popupBorderPanel = ColorPanel()
 
             // Create tabbed pane
             val tabbedPane = JTabbedPane()
@@ -187,9 +184,9 @@ class SptIdSettingsConfigurable : Configurable {
             val highlightingPanel = createHighlightingPanel()
             tabbedPane.addTab("Highlighting", highlightingPanel)
 
-            // Popup tab
-            val popupPanel = createPopupPanel()
-            tabbedPane.addTab("Popup", popupPanel)
+            // Popup tab (DEPRECATED - commented out as popups replaced with tooltips)
+            // val popupPanel = createPopupPanel()
+            // tabbedPane.addTab("Popup", popupPanel)
 
             panel = JPanel()
             panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
@@ -297,8 +294,8 @@ class SptIdSettingsConfigurable : Configurable {
             val tempSettings = SptIdSettingsState()
             applyHighlightStyle(tempSettings)
             applyHighlightColors(tempSettings)
-            tempSettings.popupDelayMs = getPopupDelay()
-            applyPopupTheme(tempSettings)
+            // tempSettings.popupDelayMs = getPopupDelay()
+            // applyPopupTheme(tempSettings)
 
             val theme = ThemePreset.fromSettings(tempSettings, themeName, description, author)
 
@@ -379,10 +376,10 @@ class SptIdSettingsConfigurable : Configurable {
             colorWeaponPanel.selectedColor = theme.colorWeapon?.let { ColorUtils.stringToColor(it) }
             colorCustomizationPanel.selectedColor = theme.colorCustomization?.let { ColorUtils.stringToColor(it) }
 
-            // Apply popup settings
-            popupDelayField.text = theme.popupDelayMs.toString()
-            popupForegroundPanel.selectedColor = theme.popupForegroundColor?.let { ColorUtils.stringToColor(it) }
-            popupBorderPanel.selectedColor = theme.popupBorderColor?.let { ColorUtils.stringToColor(it) }
+            // Apply popup settings (DEPRECATED - kept for backwards compatibility)
+            // popupDelayField.text = theme.popupDelayMs.toString()
+            // popupForegroundPanel.selectedColor = theme.popupForegroundColor?.let { ColorUtils.stringToColor(it) }
+            // popupBorderPanel.selectedColor = theme.popupBorderColor?.let { ColorUtils.stringToColor(it) }
         }
 
         private fun createHighlightingPanel(): JPanel {
@@ -429,95 +426,96 @@ class SptIdSettingsConfigurable : Configurable {
                 .panel
         }
 
-        private fun createPopupPanel(): JPanel {
-            val delayHelpLabel =
-                JBLabel("<html><i>Time in milliseconds before documentation appears on hover (default: ${SptIdSettingsState.DEFAULT_POPUP_DELAY_MS}ms)</i></html>")
-            delayHelpLabel.foreground = JBUI.CurrentTheme.ContextHelp.FOREGROUND
-
-            val themeHelpLabel = JBLabel("<html><i>Choose a preset or customize individual colors</i></html>")
-            themeHelpLabel.foreground = JBUI.CurrentTheme.ContextHelp.FOREGROUND
-
-            // Theme preset buttons
-            val themeButtonPanel = JPanel()
-            themeButtonPanel.layout = BoxLayout(themeButtonPanel, BoxLayout.X_AXIS)
-
-            val defaultThemeButton = JButton("Default (IDE)")
-            defaultThemeButton.toolTipText = "Use IDE's default theme colors"
-            defaultThemeButton.addActionListener {
-                popupForegroundPanel.selectedColor = null
-                popupBorderPanel.selectedColor = null
-            }
-
-            val lightThemeButton = JButton("Light Theme")
-            lightThemeButton.toolTipText = "Optimized for light IDE themes"
-            lightThemeButton.addActionListener {
-                popupForegroundPanel.selectedColor = Gray._40
-                popupBorderPanel.selectedColor = Gray._200
-            }
-
-            val darkThemeButton = JButton("Dark Theme")
-            darkThemeButton.toolTipText = "Optimized for dark IDE themes"
-            darkThemeButton.addActionListener {
-                popupForegroundPanel.selectedColor = Gray._220
-                popupBorderPanel.selectedColor = Gray._80
-            }
-
-            val blueThemeButton = JButton("Blue")
-            blueThemeButton.toolTipText = "Blue-tinted theme (adapts to light/dark mode)"
-            blueThemeButton.addActionListener {
-                // Darker blue for light theme, brighter blue for dark theme
-                popupForegroundPanel.selectedColor = JBColor(Color(60, 120, 200), Color(156, 196, 255))
-                popupBorderPanel.selectedColor = JBColor(Color(100, 150, 220), Color(156, 196, 255))
-            }
-
-            val redThemeButton = JButton("Red")
-            redThemeButton.toolTipText = "Red-tinted theme (adapts to light/dark mode)"
-            redThemeButton.addActionListener {
-                // Darker red for light theme, brighter red for dark theme
-                popupForegroundPanel.selectedColor = JBColor(Color(180, 30, 40), Color(255, 100, 100))
-                popupBorderPanel.selectedColor = null
-            }
-
-            val purpleThemeButton = JButton("WTT")
-            purpleThemeButton.toolTipText = "Purple-tinted theme inspired by WTT (adapts to light/dark mode)"
-            purpleThemeButton.addActionListener {
-                // Darker purple for light theme, brighter purple for dark theme
-                popupForegroundPanel.selectedColor = JBColor(Color(100, 40, 140), Color(180, 120, 220))
-                popupBorderPanel.selectedColor = null
-            }
-
-            themeButtonPanel.add(defaultThemeButton)
-            themeButtonPanel.add(Box.createHorizontalStrut(5))
-            themeButtonPanel.add(lightThemeButton)
-            themeButtonPanel.add(Box.createHorizontalStrut(5))
-            themeButtonPanel.add(darkThemeButton)
-            themeButtonPanel.add(Box.createHorizontalStrut(5))
-            themeButtonPanel.add(blueThemeButton)
-            themeButtonPanel.add(Box.createHorizontalStrut(5))
-            themeButtonPanel.add(redThemeButton)
-            themeButtonPanel.add(Box.createHorizontalStrut(5))
-            themeButtonPanel.add(purpleThemeButton)
-            themeButtonPanel.add(Box.createHorizontalGlue())
-
-            return FormBuilder.createFormBuilder()
-                .addLabeledComponent(JBLabel("Popup delay (ms):"), popupDelayField, 1, false)
-                .addComponent(delayHelpLabel)
-                .addVerticalGap(15)
-                .addSeparator()
-                .addVerticalGap(10)
-                .addComponent(JBLabel("<html><b>Popup Theme Presets:</b></html>"))
-                .addComponent(themeButtonPanel)
-                .addVerticalGap(15)
-                .addSeparator()
-                .addVerticalGap(10)
-                .addComponent(JBLabel("<html><b>Custom Colors:</b></html>"))
-                .addComponent(themeHelpLabel)
-                .addVerticalGap(5)
-                .addLabeledComponent(JBLabel("Text:"), popupForegroundPanel, 1, false)
-                .addLabeledComponent(JBLabel("Border:"), popupBorderPanel, 1, false)
-                .addComponentFillVertically(JPanel(), 0)
-                .panel
-        }
+        // DEPRECATED - Popup panel removed as popups replaced with tooltips
+        // private fun createPopupPanel(): JPanel {
+        //     val delayHelpLabel =
+        //         JBLabel("<html><i>Time in milliseconds before documentation appears on hover (default: ${SptIdSettingsState.DEFAULT_POPUP_DELAY_MS}ms)</i></html>")
+        //     delayHelpLabel.foreground = JBUI.CurrentTheme.ContextHelp.FOREGROUND
+        //
+        //     val themeHelpLabel = JBLabel("<html><i>Choose a preset or customize individual colors</i></html>")
+        //     themeHelpLabel.foreground = JBUI.CurrentTheme.ContextHelp.FOREGROUND
+        //
+        //     // Theme preset buttons
+        //     val themeButtonPanel = JPanel()
+        //     themeButtonPanel.layout = BoxLayout(themeButtonPanel, BoxLayout.X_AXIS)
+        //
+        //     val defaultThemeButton = JButton("Default (IDE)")
+        //     defaultThemeButton.toolTipText = "Use IDE's default theme colors"
+        //     defaultThemeButton.addActionListener {
+        //         popupForegroundPanel.selectedColor = null
+        //         popupBorderPanel.selectedColor = null
+        //     }
+        //
+        //     val lightThemeButton = JButton("Light Theme")
+        //     lightThemeButton.toolTipText = "Optimized for light IDE themes"
+        //     lightThemeButton.addActionListener {
+        //         popupForegroundPanel.selectedColor = Gray._40
+        //         popupBorderPanel.selectedColor = Gray._200
+        //     }
+        //
+        //     val darkThemeButton = JButton("Dark Theme")
+        //     darkThemeButton.toolTipText = "Optimized for dark IDE themes"
+        //     darkThemeButton.addActionListener {
+        //         popupForegroundPanel.selectedColor = Gray._220
+        //         popupBorderPanel.selectedColor = Gray._80
+        //     }
+        //
+        //     val blueThemeButton = JButton("Blue")
+        //     blueThemeButton.toolTipText = "Blue-tinted theme (adapts to light/dark mode)"
+        //     blueThemeButton.addActionListener {
+        //         // Darker blue for light theme, brighter blue for dark theme
+        //         popupForegroundPanel.selectedColor = JBColor(Color(60, 120, 200), Color(156, 196, 255))
+        //         popupBorderPanel.selectedColor = JBColor(Color(100, 150, 220), Color(156, 196, 255))
+        //     }
+        //
+        //     val redThemeButton = JButton("Red")
+        //     redThemeButton.toolTipText = "Red-tinted theme (adapts to light/dark mode)"
+        //     redThemeButton.addActionListener {
+        //         // Darker red for light theme, brighter red for dark theme
+        //         popupForegroundPanel.selectedColor = JBColor(Color(180, 30, 40), Color(255, 100, 100))
+        //         popupBorderPanel.selectedColor = null
+        //     }
+        //
+        //     val purpleThemeButton = JButton("WTT")
+        //     purpleThemeButton.toolTipText = "Purple-tinted theme inspired by WTT (adapts to light/dark mode)"
+        //     purpleThemeButton.addActionListener {
+        //         // Darker purple for light theme, brighter purple for dark theme
+        //         popupForegroundPanel.selectedColor = JBColor(Color(100, 40, 140), Color(180, 120, 220))
+        //         popupBorderPanel.selectedColor = null
+        //     }
+        //
+        //     themeButtonPanel.add(defaultThemeButton)
+        //     themeButtonPanel.add(Box.createHorizontalStrut(5))
+        //     themeButtonPanel.add(lightThemeButton)
+        //     themeButtonPanel.add(Box.createHorizontalStrut(5))
+        //     themeButtonPanel.add(darkThemeButton)
+        //     themeButtonPanel.add(Box.createHorizontalStrut(5))
+        //     themeButtonPanel.add(blueThemeButton)
+        //     themeButtonPanel.add(Box.createHorizontalStrut(5))
+        //     themeButtonPanel.add(redThemeButton)
+        //     themeButtonPanel.add(Box.createHorizontalStrut(5))
+        //     themeButtonPanel.add(purpleThemeButton)
+        //     themeButtonPanel.add(Box.createHorizontalGlue())
+        //
+        //     return FormBuilder.createFormBuilder()
+        //         .addLabeledComponent(JBLabel("Popup delay (ms):"), popupDelayField, 1, false)
+        //         .addComponent(delayHelpLabel)
+        //         .addVerticalGap(15)
+        //         .addSeparator()
+        //         .addVerticalGap(10)
+        //         .addComponent(JBLabel("<html><b>Popup Theme Presets:</b></html>"))
+        //         .addComponent(themeButtonPanel)
+        //         .addVerticalGap(15)
+        //         .addSeparator()
+        //         .addVerticalGap(10)
+        //         .addComponent(JBLabel("<html><b>Custom Colors:</b></html>"))
+        //         .addComponent(themeHelpLabel)
+        //         .addVerticalGap(5)
+        //         .addLabeledComponent(JBLabel("Text:"), popupForegroundPanel, 1, false)
+        //         .addLabeledComponent(JBLabel("Border:"), popupBorderPanel, 1, false)
+        //         .addComponentFillVertically(JPanel(), 0)
+        //         .panel
+        // }
 
         fun getSelectedLanguage(): String {
             val selectedIndex = languageComboBox.selectedIndex
@@ -599,29 +597,29 @@ class SptIdSettingsConfigurable : Configurable {
             colorCustomizationPanel.selectedColor = ColorUtils.stringToColor(settings.colorCustomization)
         }
 
-        // Popup methods
-        fun getPopupDelay(): Int {
-            return popupDelayField.text.toIntOrNull() ?: SptIdSettingsState.DEFAULT_POPUP_DELAY_MS
-        }
+        // Popup methods (DEPRECATED - kept for backwards compatibility)
+        // fun getPopupDelay(): Int {
+        //     return popupDelayField.text.toIntOrNull() ?: SptIdSettingsState.DEFAULT_POPUP_DELAY_MS
+        // }
 
-        fun setPopupDelay(delay: Int) {
-            popupDelayField.text = delay.toString()
-        }
+        // fun setPopupDelay(delay: Int) {
+        //     popupDelayField.text = delay.toString()
+        // }
 
-        fun isPopupThemeModified(settings: SptIdSettingsState): Boolean {
-            return ColorUtils.colorToString(popupForegroundPanel.selectedColor) != settings.popupForegroundColor ||
-                    ColorUtils.colorToString(popupBorderPanel.selectedColor) != settings.popupBorderColor
-        }
+        // fun isPopupThemeModified(settings: SptIdSettingsState): Boolean {
+        //     return ColorUtils.colorToString(popupForegroundPanel.selectedColor) != settings.popupForegroundColor ||
+        //             ColorUtils.colorToString(popupBorderPanel.selectedColor) != settings.popupBorderColor
+        // }
 
-        fun applyPopupTheme(settings: SptIdSettingsState) {
-            settings.popupForegroundColor = ColorUtils.colorToString(popupForegroundPanel.selectedColor)
-            settings.popupBorderColor = ColorUtils.colorToString(popupBorderPanel.selectedColor)
-        }
+        // fun applyPopupTheme(settings: SptIdSettingsState) {
+        //     settings.popupForegroundColor = ColorUtils.colorToString(popupForegroundPanel.selectedColor)
+        //     settings.popupBorderColor = ColorUtils.colorToString(popupBorderPanel.selectedColor)
+        // }
 
-        fun resetPopupTheme(settings: SptIdSettingsState) {
-            popupForegroundPanel.selectedColor = ColorUtils.stringToColor(settings.popupForegroundColor)
-            popupBorderPanel.selectedColor = ColorUtils.stringToColor(settings.popupBorderColor)
-        }
+        // fun resetPopupTheme(settings: SptIdSettingsState) {
+        //     popupForegroundPanel.selectedColor = ColorUtils.stringToColor(settings.popupForegroundColor)
+        //     popupBorderPanel.selectedColor = ColorUtils.stringToColor(settings.popupBorderColor)
+        // }
 
     }
 }

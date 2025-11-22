@@ -91,9 +91,9 @@ data class ThemePreset(
                 colorWeapon = settings.colorWeapon,
                 colorCustomization = settings.colorCustomization,
                 popupDelayMs = settings.popupDelayMs,
-                popupBackgroundColor = settings.popupBackgroundColor,
-                popupForegroundColor = settings.popupForegroundColor,
-                popupBorderColor = settings.popupBorderColor
+                popupBackgroundColor = null, // DEPRECATED
+                popupForegroundColor = null, // DEPRECATED
+                popupBorderColor = null // DEPRECATED
             )
         }
     }
@@ -114,9 +114,10 @@ data class ThemePreset(
         settings.colorWeapon = colorWeapon
         settings.colorCustomization = colorCustomization
         settings.popupDelayMs = popupDelayMs
-        settings.popupBackgroundColor = popupBackgroundColor
-        settings.popupForegroundColor = popupForegroundColor
-        settings.popupBorderColor = popupBorderColor
+        // DEPRECATED - popup colors no longer used
+        // settings.popupBackgroundColor = popupBackgroundColor
+        // settings.popupForegroundColor = popupForegroundColor
+        // settings.popupBorderColor = popupBorderColor
     }
 
     /**

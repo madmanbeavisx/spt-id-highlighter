@@ -11,29 +11,73 @@ import com.madmanbeavis.sptidHighlighter.services.SptDataService
 
 class SptIdDocumentationProvider : AbstractDocumentationProvider() {
 
-    // SPT IDs are 24-character hexadecimal strings
+    // Pre-compiled regex for 24-character hexadecimal strings
     private val sptIdPattern = Regex("[0-9a-f]{24}", RegexOption.IGNORE_CASE)
 
+    // Pre-compiled cleaning regex to avoid recreation on every call
+    private val cleaningPattern = Regex("""["'\s,;\[\]()]""")
+
+    private val logger = com.intellij.openapi.diagnostic.Logger.getInstance(SptIdDocumentationProvider::class.java)
+
     override fun generateDoc(element: PsiElement?, originalElement: PsiElement?): String? {
-        val text = element?.text ?: return null
+        if (element == null) return null
+
+        val text = element.text ?: return null
+
+        // Early exit: text must be at least 24 chars to contain an SPT ID
+        if (text.length < 24) return null
+
+        // Early exit: Skip very large text to avoid performance issues
+        if (text.length > 1000) return null
+
         val dataService = SptDataService.getInstance()
 
-        // First try exact match after cleaning
-        val cleanText = text.trim('"', '\'', ' ', '\n', '\r', '\t')
-        dataService.getItemDetails(cleanText)?.let {
-            return buildDocumentation(it, dataService)
+        // Reduce logging noise in production - only log if debug is enabled
+        if (logger.isDebugEnabled) {
+            logger.debug("SPT: generateDoc - Element: ${element.javaClass.simpleName}, Text length: ${text.length}")
         }
 
-        // If no exact match, search for SPT IDs within the text
-        val matches = sptIdPattern.findAll(text)
-        for (match in matches) {
-            val potentialId = match.value
-            dataService.getItemDetails(potentialId)?.let {
-                return buildDocumentation(it, dataService)
+        // First try exact match after cleaning
+        val cleanText = text.replace(cleaningPattern, "")
+        if (cleanText.length == 24 && sptIdPattern.matches(cleanText)) {
+            dataService.getItemDetails(cleanText)?.let {
+                if (logger.isDebugEnabled) {
+                    logger.debug("SPT: Found ID: $cleanText - ${it.name}")
+                }
+                return buildSptOnlyDocumentation(it, dataService)
             }
         }
 
+        // If no exact match, search for SPT IDs within the text (limit to first 3 matches)
+        val matches = sptIdPattern.findAll(text).take(3)
+        for (match in matches) {
+            val potentialId = match.value
+            dataService.getItemDetails(potentialId)?.let {
+                if (logger.isDebugEnabled) {
+                    logger.debug("SPT: Found ID in text: $potentialId - ${it.name}")
+                }
+                return buildSptOnlyDocumentation(it, dataService)
+            }
+        }
+
+        // Return null to let other documentation providers handle it
         return null
+    }
+
+    // Build documentation that mimics IntelliJ's definition list style
+    private fun buildSptOnlyDocumentation(item: ItemDetails, dataService: SptDataService): String {
+        val sb = StringBuilder()
+
+        // Use IntelliJ's definition list format which takes precedence
+        sb.append("<div class='definition'><pre>")
+        sb.append("<b>SPT Item: ${item.name}</b>\n")
+        sb.append("ID: ${item.id}")
+        sb.append("</pre></div>")
+
+        // Add the regular documentation below
+        sb.append(buildDocumentation(item, dataService))
+
+        return sb.toString()
     }
 
     override fun getCustomDocumentationElement(
@@ -42,18 +86,82 @@ class SptIdDocumentationProvider : AbstractDocumentationProvider() {
         contextElement: PsiElement?,
         targetOffset: Int
     ): PsiElement? {
-        return contextElement
+        if (contextElement == null) return null
+
+        // Check if contextElement contains an SPT ID
+        val contextText = contextElement.text ?: ""
+
+        // Early exit: text must be at least 24 chars
+        if (contextText.length < 24) return null
+
+        val contextCleanText = contextText.replace(cleaningPattern, "")
+        if (contextCleanText.length == 24 && sptIdPattern.matches(contextCleanText)) {
+            if (logger.isDebugEnabled) {
+                logger.debug("SPT: Context element contains SPT ID: $contextCleanText")
+            }
+
+            // IMPORTANT: Return the context element itself
+            // This makes our provider handle THIS EXACT element, preventing other providers
+            // from handling it and overwriting our docs
+            return contextElement
+        }
+
+        // Search children for string literals with SPT IDs (limit depth to prevent recursion issues)
+        fun findSptIdElement(element: PsiElement, depth: Int = 0): PsiElement? {
+            if (depth > 5) return null // Prevent deep recursion
+
+            val text = element.text ?: return null
+            if (text.length < 24) return null
+
+            val cleanText = text.replace(cleaningPattern, "")
+
+            if (cleanText.length == 24 && sptIdPattern.matches(cleanText)) {
+                if (logger.isDebugEnabled) {
+                    logger.debug("SPT: Found child with SPT ID: $cleanText")
+                }
+                return element
+            }
+
+            // Check if cursor is within an ID (limit to first 5 matches)
+            val relativeOffset = targetOffset - element.textRange.startOffset
+            if (relativeOffset >= 0 && relativeOffset < text.length) {
+                sptIdPattern.findAll(text).take(5).forEach { match ->
+                    if (relativeOffset >= match.range.first && relativeOffset <= match.range.last) {
+                        return element
+                    }
+                }
+            }
+
+            // Limit children processing to prevent performance issues
+            val childrenToProcess = element.children.take(10)
+            for (child in childrenToProcess) {
+                findSptIdElement(child, depth + 1)?.let { return it }
+            }
+
+            return null
+        }
+
+        val match = findSptIdElement(contextElement)
+        if (match != null) {
+            logger.info("SPT: Returning matched element: ${match.javaClass.simpleName}")
+            return match
+        }
+
+        logger.info("SPT: No SPT ID found, returning null")
+        return null
     }
 
     private fun buildDocumentation(item: ItemDetails, dataService: SptDataService): String {
         val sb = StringBuilder()
-        val settings = com.madmanbeavis.sptidHighlighter.settings.SptIdSettingsState.getInstance()
+        com.madmanbeavis.sptidHighlighter.settings.SptIdSettingsState.getInstance()
 
         // Get custom colors or use defaults (no background color - let IDE handle it)
-        // Extract color appropriate for current theme (light or dark)
-        val fgColor =
-            settings.popupForegroundColor?.let { extractColorForCurrentTheme(it) } ?: getDefaultForegroundColor()
-        val borderColor = settings.popupBorderColor?.let { extractColorForCurrentTheme(it) } ?: "#3C3F41"
+        // Extract color appropriate for the current theme (light or dark)
+        // DEPRECATED-popup colors removed, using defaults
+        val fgColor = getDefaultForegroundColor()
+        val borderColor = "#3C3F41"
+        // val fgColor = settings.popupForegroundColor?.let { extractColorForCurrentTheme(it) } ?: getDefaultForegroundColor()
+        // val borderColor = settings.popupBorderColor?.let { extractColorForCurrentTheme(it) } ?: "#3C3F41"
 
         // Simple wrapper - no background, let IDE theme handle it
         val colorStyle = if (fgColor != "inherit") "color: $fgColor;" else ""
@@ -178,10 +286,10 @@ class SptIdDocumentationProvider : AbstractDocumentationProvider() {
 
     /**
      * Resolves a trader name from trader and traderId fields.
-     * First checks if trader field contains a name or ID, then falls back to traderId lookup.
+     * First checks if the trader field contains a name or ID, then falls back to traderId lookup.
      */
     private fun resolveTraderName(trader: String?, traderId: String?, dataService: SptDataService): String {
-        // If trader field exists, check if it's an ID or a name
+        // If the trader field exists, check if it's an ID or a name
         trader?.let {
             return if (it.matches(Regex("[0-9a-f]{24}", RegexOption.IGNORE_CASE))) {
                 // It's an ID, look it up

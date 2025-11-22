@@ -29,13 +29,13 @@ class SptIdSettingsState : PersistentStateComponent<SptIdSettingsState> {
     var colorWeapon: String? = null
     var colorCustomization: String? = null
 
-    // Documentation popup delay in milliseconds
+    // Documentation popup delay in milliseconds (DEPRECATED - kept for backwards compatibility)
     var popupDelayMs: Int = DEFAULT_POPUP_DELAY_MS
 
-    // Popup theme colors (stored as hex strings, format: "lightColor|darkColor" or single color, null = use IDE theme defaults)
-    var popupBackgroundColor: String? = null
-    var popupForegroundColor: String? = null
-    var popupBorderColor: String? = null
+    // Popup theme colors (DEPRECATED - popups replaced with tooltips, kept for backwards compatibility)
+    // var popupBackgroundColor: String? = null
+    // var popupForegroundColor: String? = null
+    // var popupBorderColor: String? = null
 
     companion object {
         const val DEFAULT_POPUP_DELAY_MS = 300

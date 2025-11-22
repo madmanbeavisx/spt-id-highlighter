@@ -5,18 +5,20 @@ import com.intellij.openapi.diagnostic.Logger
 import com.madmanbeavis.sptidHighlighter.models.ItemDetails
 import com.madmanbeavis.sptidHighlighter.services.utils.ResourceLoader
 import com.madmanbeavis.sptidHighlighter.settings.SptIdSettingsState
+import java.util.concurrent.ConcurrentHashMap
 
 class SptDataService {
     private val logger = Logger.getInstance(SptDataService::class.java)
 
+    // Use ConcurrentHashMap for thread-safe, lock-free reads
     @Volatile
-    private var itemsCache: MutableMap<String, ItemDetails> = mutableMapOf()
+    private var itemsCache: ConcurrentHashMap<String, ItemDetails> = ConcurrentHashMap()
 
     @Volatile
     private var translationsCache: Map<String, String> = emptyMap()
 
     @Volatile
-    private var customItems: Map<String, ItemDetails> = emptyMap()
+    private var customItems: ConcurrentHashMap<String, ItemDetails> = ConcurrentHashMap()
 
     companion object {
         private const val DATABASE_PATH_PREFIX = "/database/"
@@ -50,17 +52,13 @@ class SptDataService {
         logger.info("SPT Data Service initialized with language: $language")
     }
 
-    private fun loadItemsData(language: String): MutableMap<String, ItemDetails> {
+    private fun loadItemsData(language: String): ConcurrentHashMap<String, ItemDetails> {
         val resourcePath = "$DATABASE_PATH_PREFIX$language$JSON_EXTENSION"
 
         return try {
             val data = ResourceLoader.loadJsonResource<Map<String, ItemDetails>>(resourcePath)
 
-            if (data != null) {
-                data.toMutableMap()
-            } else {
-                throw IllegalArgumentException("Failed to parse items data")
-            }
+            ConcurrentHashMap(data ?: throw IllegalArgumentException("Failed to parse items data"))
         } catch (e: Exception) {
             logger.error("Failed to load items data for language: $language", e)
 
@@ -70,7 +68,7 @@ class SptDataService {
                 loadItemsData(DEFAULT_LANGUAGE)
             } else {
                 logger.warn("Failed to load English items data, using empty map")
-                mutableMapOf()
+                ConcurrentHashMap()
             }
         }
     }
@@ -113,13 +111,13 @@ class SptDataService {
 
     @Synchronized
     fun setCustomItems(items: Map<String, ItemDetails>) {
-        customItems = items
+        customItems = ConcurrentHashMap(items)
         logger.info("Loaded ${items.size} custom items from .sptids file")
     }
 
     @Synchronized
     fun clearCustomItems() {
-        customItems = emptyMap()
+        customItems = ConcurrentHashMap()
         logger.info("Cleared custom items")
     }
 

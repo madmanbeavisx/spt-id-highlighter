@@ -2,6 +2,49 @@
 
 All notable changes to the SPT ID Highlighter plugin will be documented in this file.
 
+## [1.5.0] - 11/20/2025
+
+### Performance Optimization Release 🚀
+
+This release addresses critical performance issues that caused IDE freezing and thread contention.
+
+### Fixed
+
+- **Critical: Thread Contention in Inlay Hints** - Fixed severe performance issue where `SptIdInlayHintProvider` caused
+  6+ JobScheduler threads to block on expensive HashMap TreeNode operations
+    - Replaced `HashSet<Int>` with `TIntHashSet` for O(1) primitive lookups without TreeNode overhead
+    - Added `ProgressManager.checkCanceled()` calls to allow operation cancellation
+    - Added limit of 500 hints per file to prevent unbounded memory growth
+    - Reordered validation checks to perform fast checks before expensive service calls
+- **Thread Safety** - Replaced `MutableMap` with `ConcurrentHashMap` in `SptDataService` for lock-free concurrent reads
+- **UI Freezing** - Added cancellation checks and early exit conditions in `SptIdAnnotator` and
+  `SptIdDocumentationProvider`
+- **Excessive Recursion** - Limited recursion depth to 5 and children processing to 10 nodes in documentation provider
+- **Logging Overhead** - Reduced logging noise by only logging when debug mode is enabled
+
+### Changed
+
+- **Performance Improvements**:
+    - Pre-compiled regex patterns to avoid object creation on every call
+    - Added early length validation checks (text must be ≥24 chars to contain SPT IDs)
+    - Limited regex match processing to prevent excessive iterations
+    - Optimized annotation limits (50 per element) to prevent performance degradation
+    - Added size limits on text processing (skip blocks >10,000 chars in annotator, >1,000 in documentation)
+- **Build System**:
+    - Added Trove4j dependency for high-performance primitive collections
+    - Enabled Kotlin incremental compilation for faster builds
+    - Added compiler optimization flags (`-Xjvm-default=all`)
+
+### Technical Details
+
+This release eliminates thread contention that previously caused:
+
+- 6+ background threads stuck in `HashMap$TreeNode.getTreeNode()` and `HashMap$TreeNode.putTreeVal()`
+- UI thread unable to acquire write locks, freezing the IDE during typing
+- Unbalanced HashMap tree structures causing O(log n) operations instead of O(1)
+
+All hot paths now use lock-free concurrent collections and have proper cancellation support.
+
 ## [1.3.0] - 11/02/2025
 
 > This update was big enough that I decided to skip a version. 🤣🤣
